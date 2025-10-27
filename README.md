@@ -52,10 +52,3 @@ An AI agent that can detect and translate kanji in real time.
 - Gage Leinenger
 
 
-<details>
-
-  <summary>
-    *heyy*
-  </summary>
-  *test
-</details>
