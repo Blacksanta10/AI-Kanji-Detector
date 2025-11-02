@@ -2,9 +2,10 @@
 # Simple program to open webcam and display the video stream
 
 import cv2
+import time
 
 # 0 is default camera, 1 is external usb cam
-cam_index = 1
+cam_index = 0
 
 # Open the default camera (0 is usually the built-in webcam)
 cap = cv2.VideoCapture(cam_index)
@@ -12,6 +13,10 @@ cap = cv2.VideoCapture(cam_index)
 if not cap.isOpened():
     print("Cannot open camera")
     exit()
+
+frame_time = 1
+prev_time = 0
+count = 0
 
 while True:
     # Capture frame-by-frame
@@ -25,6 +30,19 @@ while True:
     # Display the resulting frame
     cv2.imshow('Webcam Stream', frame)
     
+    current_time = time.time()
+
+    # grayscales, resizes, and saves a new image every second
+    # change frame_time to adjust save time
+    if current_time - prev_time >= frame_time:
+        prev_time = current_time
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        resized_frame = cv2.resize(gray_frame, (64, 64),
+                                   interpolation=cv2.INTER_AREA)
+        cv2.imwrite(f"gray_image.jpg", resized_frame)
+        count += 1
+
+
     # Press 'q' on keyboard to exit
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
