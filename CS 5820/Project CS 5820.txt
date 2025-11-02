@@ -1,0 +1,8 @@
+Project CS 5820 
+
+-- How to connect phone camera to computer
+
+1. Connect phone through USB 
+2. Go to Phone Settings --> Connected Devices --> USB Preferences, give access to Webcam
+3. Go to Computer Settings --> Bluetooth & Devices --> Cameras, you should see that your phone's webcam is an option
+
