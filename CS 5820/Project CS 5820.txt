@@ -6,3 +6,25 @@ Project CS 5820
 2. Go to Phone Settings --> Connected Devices --> USB Preferences, give access to Webcam
 3. Go to Computer Settings --> Bluetooth & Devices --> Cameras, you should see that your phone's webcam is an option
 
+
+-- Problem Specification 
+	- Only limited to Japanese Kanji
+	- Can not do combination kanji translations
+
+
+-- Agent Design
+	-Performance, Environment, Actuators, Sensors
+
+
+-- Dataset information
+  - Kuzushiji-MNIST translates kanji into hiragana (Japanese alphabet).
+  - download data in Numpy format
+  - easier to handle and use tools 
+
+-- How to train the model??
+  - Make a CNN using pytorch
+	- Make CNN layers that transform the input data(kanji picture)
+	-Datasets: training, test data
+	-Optimizer: model's internal weights
+	-Cost function: model predictions vs. true
+	-Metrics: performance, accuracy, etc.
