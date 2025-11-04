@@ -4,7 +4,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
+import numpy as np
+
 
 # =============================
 # 1. Hyperparameters
@@ -26,36 +28,56 @@ transform = transforms.Compose([
 ])
 
 # Download Kuzushiji-MNIST dataset
-train_dataset = datasets.KMNIST(root="./data", train=True, download=True, transform=transform)
-test_dataset = datasets.KMNIST(root="./data", train=False, download=True, transform=transform)
+# Formatting the image and labels into NumPy arrays
 
-train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+X_train = np.load('kmnist-train-imgs.npz')['arr_0']
+y_train = np.load('kmnist-train-labels.npz')['arr_0']
 
+X_test = np.load('kmnist-test-imgs.npz')['arr_0']
+y_test = np.load('kmnist-test-labels.npz')['arr_0']
+
+# 1. Convert NumPy arrays to Pytorch tensors
+X_train_tensor = torch.from_numpy(X_train).float() / 255.0  #Normalize and convert type
+y_train_tensor = torch.from_numpy(y_train).long()
+
+# 2. Create a TensorDataset from tensors
+train_dataset= TensorDataset(X_train_tensor, y_train_tensor)
+
+# 3. Create the DataLoader for batching and shuffling
+train_loader = DataLoader(
+    dataset=train_dataset,
+    batch_size=64,
+    shuffle=True
+)
+# Now we can iterate over train_loader in the training loop
+
+
+
+# ==== We might not need this because we are creating a Dataset from tensors.
+# class KanjiCNN(nn.Module):
+#     def __init__(self):
+#         super(KanjiCNN, self).__init__()
+#         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
+#         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+#         self.pool = nn.MaxPool2d(2, 2)
+#         self.fc1 = nn.Linear(64 * 14 * 14, 128)
+#         self.fc2 = nn.Linear(128, NUM_CLASSES)
+#         self.relu = nn.ReLU()
+#         self.dropout = nn.Dropout(0.25)
+
+#     def forward(self, x):
+#         x = self.relu(self.conv1(x))
+#         x = self.pool(self.relu(self.conv2(x)))
+#         x = x.view(-1, 64 * 14 * 14)
+#         x = self.relu(self.fc1(x))
+#         x = self.dropout(x)
+#         x = self.fc2(x)
+#         return x
+
+# model = KanjiCNN()
 # =============================
-# 3. Define CNN Model
-# =============================
-class KanjiCNN(nn.Module):
-    def __init__(self):
-        super(KanjiCNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.fc1 = nn.Linear(64 * 14 * 14, 128)
-        self.fc2 = nn.Linear(128, NUM_CLASSES)
-        self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.25)
 
-    def forward(self, x):
-        x = self.relu(self.conv1(x))
-        x = self.pool(self.relu(self.conv2(x)))
-        x = x.view(-1, 64 * 14 * 14)
-        x = self.relu(self.fc1(x))
-        x = self.dropout(x)
-        x = self.fc2(x)
-        return x
 
-model = KanjiCNN()
 
 # =============================
 # 4. Loss & Optimizer
