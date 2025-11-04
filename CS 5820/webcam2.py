@@ -5,7 +5,7 @@ import cv2
 import time
 
 # 0 is default camera, 1 is external usb cam
-cam_index = 0
+cam_index = 1
 
 # Open the default camera (0 is usually the built-in webcam)
 cap = cv2.VideoCapture(cam_index)
