@@ -36,12 +36,7 @@ while True:
     # change frame_time to adjust save time
     if current_time - prev_time >= frame_time:
         prev_time = current_time
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        resized_frame = cv2.resize(gray_frame, (64, 64),
-                                   interpolation=cv2.INTER_AREA)
-        cv2.imwrite(f"gray_image.jpg", resized_frame)
-        count += 1
-
+        cv2.imwrite(f"gray_image.jpg", frame)
 
     # Press 'q' on keyboard to exit
     if cv2.waitKey(1) & 0xFF == ord('q'):
