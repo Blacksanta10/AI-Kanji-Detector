@@ -7,8 +7,19 @@ from torchvision.transforms.functional import pad
 import threading
 import time
 
-labels = ["お", "き", "す", "つ", "な", "は", "ま", "や", "れ", "を"]
-
+labels = [
+    "あ", "い", "う", "え", "お",
+    "か", "き", "く", "け", "こ",
+    "さ", "し", "す", "せ", "そ",
+    "た", "ち", "つ", "て", "と",
+    "な", "に", "ぬ", "ね", "の",
+    "は", "ひ", "ふ", "へ", "ほ",
+    "ま", "み", "む", "め", "も",
+    "や", "ゆ", "よ",
+    "ら", "り", "る", "れ", "ろ",
+    "わ", "ゐ", "ゑ", "を",
+    "ん", ""
+]
 # Force PyTorch single-thread mode
 torch.set_num_threads(1)
 
@@ -22,7 +33,7 @@ class KanjiCNN(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
         self.pool = nn.MaxPool2d(2, 2)
         self.fc1 = nn.Linear(64 * 14 * 14, 128)
-        self.fc2 = nn.Linear(128, 10)
+        self.fc2 = nn.Linear(128, 49)
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.25)
 
@@ -76,8 +87,11 @@ def inference_loop():
             with lock:
                 frame_copy = latest_frame.copy()
             gray_frame = cv2.cvtColor(frame_copy, cv2.COLOR_BGR2GRAY)
+            resized_image = cv2.resize(gray_frame, (28, 28))
+            cv2.imwrite("test_image.jpg", resized_image)
             pil_frame = Image.fromarray(gray_frame)
             input_tensor = transform(pil_frame).unsqueeze(0).to(device)
+            
 
             with torch.no_grad():
                 outputs = model(input_tensor)
@@ -111,8 +125,6 @@ while True:
     with lock:
         latest_frame = frame.copy()
 
-    cv2.putText(frame, prediction_text, (10, 30),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     cv2.imshow('Kanji Live Feed', frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):

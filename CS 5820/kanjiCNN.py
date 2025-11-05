@@ -1,36 +1,72 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
+from torchvision import transforms
+from torch.utils.data import Dataset, DataLoader
+from PIL import Image
+import numpy as np
 
 # =============================
 # 1. Hyperparameters
 # =============================
 BATCH_SIZE = 64
-EPOCHS = 20
+EPOCHS = 5
 LEARNING_RATE = 0.001
-NUM_CLASSES = 10  # Kuzushiji-MNIST has 10 classes
+NUM_CLASSES = 49
 MODEL_PATH = "kanji_cnn_model.pth"
 
 # =============================
-# 2. Data Loading & Preprocessing
+# 2. Custom Dataset
+# =============================
+class Kuzushiji49NumpyDataset(Dataset):
+    def __init__(self, imgs_path, labels_path, transform=None):
+        imgs_npz = np.load(imgs_path)
+        labels_npz = np.load(labels_path)
+        # Detect keys dynamically
+        self.images = imgs_npz[imgs_npz.files[0]]
+        self.labels = labels_npz[labels_npz.files[0]]
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        img = self.images[idx]
+        label = int(self.labels[idx])
+        img = Image.fromarray(img)
+        if self.transform:
+            img = self.transform(img)
+        return img, label
+
+# =============================
+# 3. Transforms
 # =============================
 transform = transforms.Compose([
-    transforms.Grayscale(),
+    transforms.Resize((28, 28)),
     transforms.ToTensor(),
     transforms.Normalize((0.5,), (0.5,))
 ])
 
-# Download Kuzushiji-MNIST dataset
-train_dataset = datasets.KMNIST(root="./data", train=True, download=True, transform=transform)
-test_dataset = datasets.KMNIST(root="./data", train=False, download=True, transform=transform)
+# =============================
+# 4. Load Data
+# =============================
+train_dataset = Kuzushiji49NumpyDataset(
+    "./data/K49/k49-train-imgs.npz",
+    "./data/K49/k49-train-labels.npz",
+    transform=transform
+)
+
+test_dataset = Kuzushiji49NumpyDataset(
+    "./data/K49/k49-test-imgs.npz",
+    "./data/K49/k49-test-labels.npz",
+    transform=transform
+)
 
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
 # =============================
-# 3. Define CNN Model
+# 5. Define CNN Model
 # =============================
 class KanjiCNN(nn.Module):
     def __init__(self):
@@ -55,13 +91,13 @@ class KanjiCNN(nn.Module):
 model = KanjiCNN()
 
 # =============================
-# 4. Loss & Optimizer
+# 6. Loss & Optimizer
 # =============================
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 # =============================
-# 5. Training Loop
+# 7. Training Loop
 # =============================
 for epoch in range(EPOCHS):
     model.train()
@@ -78,7 +114,7 @@ for epoch in range(EPOCHS):
     print(f"Epoch [{epoch+1}/{EPOCHS}], Loss: {avg_loss:.4f}")
 
 # =============================
-# 6. Validation
+# 8. Validation
 # =============================
 model.eval()
 correct = 0
@@ -94,7 +130,7 @@ accuracy = 100 * correct / total
 print(f"Validation Accuracy: {accuracy:.2f}%")
 
 # =============================
-# 7. Save Model
+# 9. Save Model
 # =============================
 torch.save(model.state_dict(), MODEL_PATH)
-print(f"Model saved to {MODEL_PATH}")
+
