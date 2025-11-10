@@ -191,10 +191,6 @@ for epoch in range(EPOCHS):
 
     val_accuracy = 100 * correct / total
 
-    # Save best model
-    if val_accuracy > best_accuracy:
-        best_accuracy = balanced_accuracy
-        torch.save(model.state_dict(), MODEL_PATH)
 
     # Store metrics
     losses.append(avg_loss)
@@ -216,6 +212,9 @@ pct_loss = [0] + [((losses[i] - losses[i-1]) / losses[i-1]) * 100 for i in range
 pct_train = [0] + [((train_accs[i] - train_accs[i-1]) / train_accs[i-1]) * 100 for i in range(1, len(train_accs))]
 pct_val = [0] + [((val_accs[i] - val_accs[i-1]) / val_accs[i-1]) * 100 for i in range(1, len(val_accs))]
 pct_balanced = [0] + [((balanced_accs[i] - balanced_accs[i-1]) / balanced_accs[i-1]) * 100 for i in range(1, len(balanced_accs))]
+
+print(f"Loss {pct_loss}\n Train {pct_train}\n Val{pct_val}\n Balanced {pct_balanced}")
+
 
 # =============================
 # 10. Plot Combined Figure
