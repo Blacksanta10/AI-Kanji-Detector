@@ -12,11 +12,11 @@ import matplotlib.pyplot as plt
 # 1. Hyperparameters
 # =============================
 BATCH_SIZE = 64
-EPOCHS = 10
+EPOCHS = 15
 LEARNING_RATE = 0.001
 NUM_CLASSES = 49
 MODEL_PATH = "best_kanji_cnn_model.pth"
-INPUT_SIZE = (112, 112)
+INPUT_SIZE = (28, 28)
 
 # =============================
 # 2. Device Detection
@@ -65,15 +65,15 @@ mean = images.mean() / 255.0  # Normalize to [0,1] range if original is 0-255
 std = images.std() / 255.0
 
 print(f"{mean}, {std}")
-
 transform = transforms.Compose([
-    transforms.Resize(INPUT_SIZE),
     transforms.Grayscale(num_output_channels=1),
     transforms.RandomRotation(15),
-    transforms.RandomAffine(0, translate=(0.1, 0.1)), 
+    transforms.RandomAffine(0, translate=(0.1, 0.1)),
+    transforms.RandomPerspective(distortion_scale=0.2, p=0.5),
     transforms.ToTensor(),
     transforms.Normalize((mean,), (std,))
 ])
+
 
 # =============================
 # 5. Load Data
@@ -100,36 +100,23 @@ class KanjiCNN(nn.Module):
     def __init__(self, num_classes=NUM_CLASSES):
         super(KanjiCNN, self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3, padding=1),
+            nn.Conv2d(1, 8, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),
-
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.Conv2d(8, 16, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-
-            nn.Conv2d(128, 256, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
+            nn.MaxPool2d(2, 2)
         )
-
-        self.gap = nn.AdaptiveAvgPool2d((1, 1))
-
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(256, 256),
+            nn.Linear(16 * 7 * 7, 64),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(256, num_classes)
+            nn.Linear(64, num_classes)
         )
 
     def forward(self, x):
         x = self.features(x)
-        x = self.gap(x)
         x = self.classifier(x)
         return x
 
@@ -138,8 +125,8 @@ model = KanjiCNN().to(device)
 # =============================
 # 7. Loss, Optimizer, Scheduler
 # =============================
-criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
-optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
+criterion = nn.CrossEntropyLoss(label_smoothing=0.15)
+optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-3)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.5)
 
 # =============================
@@ -246,3 +233,7 @@ ax2.grid(True)
 plt.tight_layout()
 plt.savefig('training_metrics_combined.png')
 print("Combined figure saved as training_metrics_combined.png")
+
+torch.save(model.state_dict(), MODEL_PATH)
+print("✅ Model saved as best_kanji_cnn.pth")
+

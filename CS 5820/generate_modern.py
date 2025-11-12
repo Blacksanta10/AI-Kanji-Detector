@@ -19,13 +19,12 @@ hiragana_chars = [
     "ん", "ゝ"
 ]
 
-img_size = 112
+img_size = 28
 samples_per_class = 1000
 font_path = "./font/ipag.ttf"  # Confirmed working
-font_size_range = (115, 115)  # Reduced to avoid clipping
+font_size_range = (28, 31)  # Reduced to avoid clipping
 
-train_images, train_labels = [], []
-test_images, test_labels = [], []
+all_images, all_labels = [], []
 
 for idx, char in enumerate(hiragana_chars):
     print(f"Generating for: {char} (index {idx})")
@@ -35,11 +34,6 @@ for idx, char in enumerate(hiragana_chars):
         draw = ImageDraw.Draw(img)
         font_size = random.randint(*font_size_range)
         font = ImageFont.truetype(font_path, font_size)
-
-        # Verify glyph exists
-        if not font.getmask(char).getbbox():
-            print(f"⚠ Glyph missing for {char}")
-            continue
 
         # Calculate text size and center
         bbox = font.getbbox(char)
@@ -53,13 +47,8 @@ for idx, char in enumerate(hiragana_chars):
         # Convert to NumPy
         img = np.array(img)
 
-        # Apply thinning effect using morphological erosion
-        r_num = random.randint(1, 5)
-        kernel = np.ones((2, 2), np.uint8)
-        img = cv2.erode(img, kernel, iterations=r_num)
-
-        a_num = random.uniform(0.02, 0.06)
-        s_num = random.uniform(0.01, 0.025)
+        a_num = random.uniform(0.01, 0.02)
+        s_num = random.uniform(0.005, 0.01)
 
         # Apply elastic deformation
         alpha = img_size * a_num
@@ -72,44 +61,36 @@ for idx, char in enumerate(hiragana_chars):
         map_y = (y_coords + dy).astype(np.float32)
         img = cv2.remap(img, map_x, map_y, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT
         )
-
         # Apply perspective warp
-        #delta = 5
-        #pts1 = np.float32([[0, 0], [img_size, 0], [0, img_size], [img_size, img_size]])
-        #pts2 = np.float32([[random.randint(0, delta), random.randint(0, delta)],
-        #                   [img_size - random.randint(0, delta), random.randint(0, delta)],
-        #                   [random.randint(0, delta), img_size - random.randint(0, delta)],
-        #                   [img_size - random.randint(0, delta), img_size - random.randint(0, delta)]])
-        #M_persp = cv2.getPerspectiveTransform(pts1, pts2)
-        #img = cv2.warpPerspective(img, M_persp, (img_size, img_size), borderValue=255
-        #)
+        delta = 4
+        pts1 = np.float32([[0, 0], [img_size, 0], [0, img_size], [img_size, img_size]])
+        pts2 = np.float32([[random.randint(0, delta), random.randint(0, delta)],
+                           [img_size - random.randint(0, delta), random.randint(0, delta)],
+                           [random.randint(0, delta), img_size - random.randint(0, delta)],
+                           [img_size - random.randint(0, delta), img_size - random.randint(0, delta)]])
+        M_persp = cv2.getPerspectiveTransform(pts1, pts2)
+        img = cv2.warpPerspective(img, M_persp, (img_size, img_size), borderValue=0)
 
-        # Add random noise
-        noise = np.random.randint(0, 40, (img_size, img_size), dtype=np.uint8)
-        img = cv2.subtract(img, noise)
         img = cv2.GaussianBlur(img, (3, 3), 0)
-        
-        # Split into train/test
-        if i < int(samples_per_class * 0.8):
-            train_images.append(img)
-            train_labels.append(idx)
-        else:
-            test_images.append(img)
-            test_labels.append(idx)
 
-train_images = np.array(train_images)
-train_labels = np.array(train_labels)
-test_images = np.array(test_images)
-test_labels = np.array(test_labels)
+        all_images.append(img)
+        all_labels.append(idx)
 
-# Shuffle datasets
-perm_train = np.random.permutation(len(train_images))
-train_images = train_images[perm_train]
-train_labels = train_labels[perm_train]
 
-perm_test = np.random.permutation(len(test_images))
-test_images = test_images[perm_test]
-test_labels = test_labels[perm_test]
+# Convert to numpy arrays
+all_images = np.array(all_images, dtype=np.uint8)
+all_labels = np.array(all_labels, dtype=np.int32)
+
+# Shuffle before splitting
+indices = np.arange(len(all_images))
+np.random.shuffle(indices)
+all_images = all_images[indices]
+all_labels = all_labels[indices]
+
+# Split into train/test
+split_idx = int(len(all_images) * 0.8)
+train_images, test_images = all_images[:split_idx], all_images[split_idx:]
+train_labels, test_labels = all_labels[:split_idx], all_labels[split_idx:]
 
 # Save datasets
 os.makedirs("./data/hiragana_final", exist_ok=True)

@@ -39,34 +39,23 @@ class KanjiCNN(nn.Module):
     def __init__(self, num_classes=49):
         super(KanjiCNN, self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3, padding=1),
+            nn.Conv2d(1, 8, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),
-
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.Conv2d(8, 16, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-
-            nn.Conv2d(128, 256, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
+            nn.MaxPool2d(2, 2)
         )
-        self.gap = nn.AdaptiveAvgPool2d((1, 1))
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(256, 256),
+            nn.Linear(16 * 7 * 7, 64),
             nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(256, num_classes)
+            nn.Dropout(0.3),
+            nn.Linear(64, num_classes)
         )
 
     def forward(self, x):
         x = self.features(x)
-        x = self.gap(x)
         x = self.classifier(x)
         return x
 
@@ -86,7 +75,7 @@ mean = images.mean() / 255.0  # Normalize to [0,1] range if original is 0-255
 std = images.std() / 255.0
 
 inference_transform = transforms.Compose([
-    transforms.Resize((112, 112)),
+    transforms.Resize((28, 28)),
     transforms.Grayscale(num_output_channels=1),
     transforms.ToTensor(),
     transforms.Normalize((mean,), (std,))
@@ -101,7 +90,7 @@ running = True
 # =============================
 # Inference Thread (Corrected)
 # =============================
-def extract_and_preprocess(frame, target_size=112):
+def extract_and_preprocess(frame, target_size=28):
     # Convert to grayscale
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -201,7 +190,7 @@ thread.start()
 # =============================
 # Main Video Loop
 # =============================
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     print("Cannot open camera")
     running = False
@@ -215,7 +204,6 @@ while True:
     with lock:
         latest_frame = frame.copy()
 
-    cv2.putText(frame, prediction_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     cv2.imshow('Kanji Live Feed', frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
