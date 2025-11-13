@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 BATCH_SIZE = 64
 EPOCHS = 15
 LEARNING_RATE = 0.001
-NUM_CLASSES = 49
+NUM_CLASSES = 46
 MODEL_PATH = "best_kanji_cnn_model.pth"
 INPUT_SIZE = (28, 28)
 
@@ -34,7 +34,7 @@ else:
 # =============================
 # 3. Custom Dataset
 # =============================
-class Kuzushiji49NumpyDataset(Dataset):
+class Kuzushiji46NumpyDataset(Dataset):
     def __init__(self, imgs_path, labels_path, transform=None):
         imgs_npz = np.load(imgs_path)
         labels_npz = np.load(labels_path)
@@ -65,7 +65,7 @@ mean = images.mean() / 255.0  # Normalize to [0,1] range if original is 0-255
 std = images.std() / 255.0
 
 print(f"{mean}, {std}")
-transform = transforms.Compose([
+train_transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
     transforms.RandomRotation(15),
     transforms.RandomAffine(0, translate=(0.1, 0.1)),
@@ -75,19 +75,27 @@ transform = transforms.Compose([
 ])
 
 
+test_transform = transforms.Compose([
+    transforms.Grayscale(num_output_channels=1),
+    transforms.ToTensor(),
+    transforms.Normalize((mean,), (std,))
+])
+
+
+
 # =============================
 # 5. Load Data
 # =============================
-train_dataset = Kuzushiji49NumpyDataset(
+train_dataset = Kuzushiji46NumpyDataset(
     "./data/hiragana_final/hiragana-train-imgs.npz",
     "./data/hiragana_final/hiragana-train-labels.npz",
-    transform=transform
+    transform=train_transform
 )
 
-test_dataset = Kuzushiji49NumpyDataset(
+test_dataset = Kuzushiji46NumpyDataset(
     "./data/hiragana_final/hiragana-test-imgs.npz",
     "./data/hiragana_final/hiragana-test-labels.npz",
-    transform=transform
+    transform=test_transform
 )
 
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
@@ -125,7 +133,7 @@ model = KanjiCNN().to(device)
 # =============================
 # 7. Loss, Optimizer, Scheduler
 # =============================
-criterion = nn.CrossEntropyLoss(label_smoothing=0.15)
+criterion = nn.CrossEntropyLoss(label_smoothing=0.10)
 optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-3)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.5)
 
@@ -202,37 +210,37 @@ pct_balanced = [0] + [((balanced_accs[i] - balanced_accs[i-1]) / balanced_accs[i
 
 print(f"Loss {pct_loss}\n Train {pct_train}\n Val{pct_val}\n Balanced {pct_balanced}")
 
-
 # =============================
-# 10. Plot Combined Figure
+# 10. Plot Separate Figures
 # =============================
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+epochs = range(1, len(losses) + 1)
 
-# Metrics per Epoch
-ax1.plot(range(1, EPOCHS+1), losses, label='Loss', color='red')
-ax1.plot(range(1, EPOCHS+1), train_accs, label='Train Acc', color='blue')
-ax1.plot(range(1, EPOCHS+1), val_accs, label='Val Acc', color='green')
-#ax1.plot(range(1, EPOCHS+1), balanced_accs, label='Balanced Acc', color='purple')
-ax1.set_title('Metrics per Epoch')
-ax1.set_xlabel('Epoch')
-ax1.set_ylabel('Value')
-ax1.legend()
-ax1.grid(True)
-
-# Percentage Change per Epoch
-ax2.plot(range(1, EPOCHS+1), pct_loss, label='Loss % Change', color='red')
-ax2.plot(range(1, EPOCHS+1), pct_train, label='Train Acc % Change', color='blue')
-ax2.plot(range(1, EPOCHS+1), pct_val, label='Val Acc % Change', color='green')
-#ax2.plot(range(1, EPOCHS+1), pct_balanced, label='Balanced Acc % Change', color='purple')
-ax2.set_title('Percentage Change per Epoch')
-ax2.set_xlabel('Epoch')
-ax2.set_ylabel('% Change')
-ax2.legend()
-ax2.grid(True)
-
+# --- Figure 1: Accuracies ---
+plt.figure(figsize=(10, 5))
+plt.plot(epochs, train_accs, label='Train Accuracy', color='royalblue', linewidth=2)
+plt.plot(epochs, val_accs, label='Val Accuracy', color='seagreen', linewidth=2)
+plt.title('Accuracy per Epoch')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy (%)')
+plt.ylim(0, 100)  # Ensure y-axis goes up to 100
+plt.grid(True, linestyle='--', alpha=0.4)
+plt.legend(loc='lower right')
 plt.tight_layout()
-plt.savefig('training_metrics_combined.png')
-print("Combined figure saved as training_metrics_combined.png")
+plt.savefig('accuracy_per_epoch.png', dpi=150)
+plt.close()
+
+# --- Figure 2: Loss ---
+plt.figure(figsize=(10, 5))
+plt.plot(epochs, losses, label='Training Loss', color='crimson', linewidth=2)
+plt.title('Loss per Epoch')
+plt.xlabel('Epoch')
+plt.ylabel('Cross-Entropy Loss')
+plt.ylim(bottom=0)  # Ensure y-axis starts at 0
+plt.grid(True, linestyle='--', alpha=0.4)
+plt.legend(loc='upper right')
+plt.tight_layout()
+plt.savefig('loss_per_epoch.png', dpi=150)
+plt.close()
 
 torch.save(model.state_dict(), MODEL_PATH)
 print("✅ Model saved as best_kanji_cnn.pth")
