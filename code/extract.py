@@ -3,8 +3,8 @@ from PIL import Image
 import os
 
 # Paths to your dataset
-imgs_path = "./data/K49/K49-train-imgs.npz"
-labels_path = "./data/K49/K49-train-labels.npz"
+imgs_path = "./data/hiragana_final/hiragana-train-imgs.npz"
+labels_path = "./data/hiragana_final/hiragana-train-labels.npz"
 
 # Load data
 imgs_npz = np.load(imgs_path)
@@ -29,7 +29,7 @@ labels = [
 ]
 
 # Directory to save samples
-output_dir = "./sample_kuzushiji"
+output_dir = "./sample"
 os.makedirs(output_dir, exist_ok=True)
 
 # Extract 10 random samples
